@@ -10,7 +10,7 @@ class Message {
   template <typename Data, typename Arg>
   class Callback {
    public:
-    Callback(bool (*fun)(Data& data, Arg* arg), Arg* arg)
+    Callback(bool (*fun)(Data& data, Arg arg), Arg arg)
         : fun_(fun), arg_(arg) {}
 
     static om_status_t Call(om_msg_t* msg, void* arg) {
@@ -20,24 +20,15 @@ class Message {
       return self->fun_(*data, self->arg_) ? OM_OK : OM_ERROR;
     }
 
-    bool (*fun_)(Data& data, Arg* arg);
-    Arg* arg_;
+    bool (*fun_)(Data& data, Arg arg);
+    Arg arg_;
   };
-
-  typedef enum {
-    Direct,
-    Cached,
-  } TopicMode;
 
   template <typename Data>
   class Topic {
    public:
-    Topic(const char* name, TopicMode mode) {
-      if (mode == Direct) {
-        this->om_topic_ = om_config_topic(NULL, "A", name);
-      } else {
-        this->om_topic_ = om_config_topic(NULL, "CA", name);
-      }
+    Topic(const char* name) {
+      this->om_topic_ = om_config_topic(NULL, "A", name);
     }
 
     bool Link(Topic& source) {
@@ -53,8 +44,10 @@ class Message {
                           this->om_topic_) == OM_OK;
     }
 
-    template <typename Arg>
-    void RegisterFilter(bool (*fun)(Data& data, Arg* arg), Arg* arg) {
+    template <typename Fun, typename Arg>
+    void RegisterFilter(Fun fun, Arg arg) {
+      static_cast<bool (*)(Data&, Arg)>(fun);
+
       Callback<Data, Arg>* cb = static_cast<Callback<Data, Arg>*>(
           om_malloc(sizeof(Callback<Data, Arg>)));
 
@@ -63,14 +56,16 @@ class Message {
       om_config_topic(this->om_topic_, "F", Callback<Data, Arg>::Call, cb);
     }
 
-    template <typename Arg>
-    void RegisterCallback(bool (*fun)(Data& data, Arg* arg), Arg* arg) {
+    template <typename Fun, typename Arg>
+    void RegisterCallback(Fun fun, Arg arg) {
+      static_cast<bool (*)(Data&, Arg)>(fun);
+
       Callback<Data, Arg>* cb = static_cast<Callback<Data, Arg>*>(
           om_malloc(sizeof(Callback<Data, Arg>)));
 
       *cb = Callback<Data, Arg>(fun, arg);
 
-      om_config_topic(this->om_topic_, "D", cb->Call, cb);
+      om_config_topic(this->om_topic_, "D", Callback<Data, Arg>::Call, cb);
     }
 
     void RangeDivide(Topic& topic, uint32_t length, uint32_t offset,
