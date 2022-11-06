@@ -28,8 +28,10 @@ class Message {
   class Topic {
    public:
     Topic(const char* name) {
-      this->om_topic_ = om_config_topic(NULL, "A", name);
+      this->om_topic_ = om_config_topic(NULL, "A", name, sizeof(Data));
     }
+
+    Topic(om_topic_t* topic) { this->om_topic_ = topic; }
 
     bool Link(Topic& source) {
       return om_core_link(source, this->om_topic_) == OM_OK;
@@ -43,6 +45,8 @@ class Message {
       return om_core_link(om_find_topic(source_name, UINT32_MAX),
                           this->om_topic_) == OM_OK;
     }
+
+    static om_topic_t* Find(const char* name) { return om_find_topic(name, 0); }
 
     template <typename Fun, typename Arg>
     void RegisterFilter(Fun fun, Arg arg) {
