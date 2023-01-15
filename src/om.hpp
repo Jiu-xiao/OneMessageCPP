@@ -62,7 +62,7 @@ class Message {
 
     template <typename Fun, typename Arg>
     void RegisterCallback(Fun fun, Arg arg) {
-      static_cast<bool (*)(Data&, Arg)>(fun);
+      (void)static_cast<bool (*)(Data&, Arg)>(fun);
 
       Callback<Data, Arg>* cb = static_cast<Callback<Data, Arg>*>(
           om_malloc(sizeof(Callback<Data, Arg>)));
