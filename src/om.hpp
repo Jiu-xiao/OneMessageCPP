@@ -108,10 +108,16 @@ class Message {
   template <typename Data>
   class Subscriber {
    public:
-    Subscriber(const char* name, Data& data) {
-      this->om_suber_ =
-          om_subscript(om_find_topic(name, UINT32_MAX), OM_PRASE_VAR(data));
+    Subscriber(const char* name, Data& data, uint32_t timeout = UINT32_MAX) {
+      om_topic_t* topic = om_find_topic(name, timeout);
+      if (topic != NULL) {
+        this->om_suber_ = om_subscript(topic, OM_PRASE_VAR(data));
+      } else {
+        this->om_suber_ = NULL;
+      }
     }
+
+    bool Ready() { return this->om_suber_ != NULL; }
 
     Subscriber(om_topic_t* topic, Data& data) {
       this->om_suber_ = om_subscript(topic, OM_PRASE_VAR(data));
@@ -121,12 +127,28 @@ class Message {
       this->om_suber_ = om_subscript(topic, OM_PRASE_VAR(data));
     }
 
-    bool Available() { return om_suber_available(this->om_suber_); }
+    bool Available() {
+      if (this->Ready()) {
+        return om_suber_available(this->om_suber_);
+      } else {
+        return false;
+      }
+    }
 
-    bool DumpData() { return om_suber_export(this->om_suber_, false) == OM_OK; }
+    bool DumpData() {
+      if (this->Ready()) {
+        return om_suber_export(this->om_suber_, false) == OM_OK;
+      } else {
+        return false;
+      }
+    }
 
     bool DumpDataFromISR() {
-      return om_suber_export(this->handle_, true) == OM_OK;
+      if (this->Ready()) {
+        return om_suber_export(this->om_suber_, true) == OM_OK;
+      } else {
+        return false;
+      }
     }
 
     om_suber_t* om_suber_;
@@ -135,12 +157,12 @@ class Message {
   class Event {
    public:
     typedef enum {
-      EventStart = OM_EVENT_START,
-      EventProgress = OM_EVENT_PROGRESS,
-      EventEnd = OM_EVENT_END
+      EVENT_START = OM_EVENT_START,
+      EVENT_PROGRESS = OM_EVENT_PROGRESS,
+      EVENT_END = OM_EVENT_END
     } Status;
 
-    Event(const char* name) { this->group_ = om_event_create_group(name); }
+    Event(const char* name) : group_(om_event_create_group(name)) {}
 
     Event(om_event_group_t* group) : group_(group) {}
 
@@ -150,8 +172,9 @@ class Message {
 
     bool Register(uint32_t event, Status status,
                   void (*callback)(uint32_t event, void* arg), void* arg) {
-      return om_event_register(this->group_, event, (om_event_status_t)status,
-                               callback, arg);
+      return om_event_register(this->group_, event,
+                               static_cast<om_event_status_t>(status), callback,
+                               arg);
     }
 
     bool Active(uint32_t event) {
