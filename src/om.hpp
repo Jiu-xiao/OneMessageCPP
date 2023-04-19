@@ -27,8 +27,12 @@ class Message {
   template <typename Data>
   class Topic {
    public:
-    Topic(const char* name) {
-      this->om_topic_ = om_config_topic(NULL, "A", name, sizeof(Data));
+    Topic(const char* name, bool cached = false) {
+      if (!cached) {
+        this->om_topic_ = om_config_topic(NULL, "A", name, sizeof(Data));
+      } else {
+        this->om_topic_ = om_config_topic(NULL, "CA", name, sizeof(Data));
+      }
     }
 
     Topic(om_topic_t* topic) { this->om_topic_ = topic; }
@@ -100,6 +104,12 @@ class Message {
              OM_OK;
     };
 
+    typedef OM_COM_TYPE(Data) RemoteData;
+
+    bool PackData(RemoteData& data) {
+      return om_com_generate_pack(om_topic_, &data) == OM_OK;
+    };
+
     operator om_topic_t*() { return this->om_topic_; };
 
     om_topic_t* om_topic_;
@@ -117,8 +127,6 @@ class Message {
       }
     }
 
-    bool Ready() { return this->om_suber_ != NULL; }
-
     Subscriber(om_topic_t* topic, Data& data) {
       this->om_suber_ = om_subscript(topic, OM_PRASE_VAR(data));
     }
@@ -126,6 +134,8 @@ class Message {
     Subscriber(Topic<Data>& topic, Data& data) {
       this->om_suber_ = om_subscript(topic, OM_PRASE_VAR(data));
     }
+
+    bool Ready() { return this->om_suber_ != NULL; }
 
     bool Available() {
       if (this->Ready()) {
@@ -152,6 +162,31 @@ class Message {
     }
 
     om_suber_t* om_suber_;
+  };
+
+  class Remote {
+   public:
+    om_com_t com_;
+
+    Remote(uint32_t buff_size, uint32_t topic_num) {
+      om_com_create(&com_, buff_size, topic_num, buff_size);
+    }
+
+    void AddTopic(const char* topic_name) {
+      om_com_add_topic(&com_, topic_name);
+    }
+
+    void AddTopic(om_topic_t* topic) { om_com_add_topic(&com_, topic->name); }
+
+    bool PraseData(uint8_t* data, uint32_t size) {
+      return om_com_prase_recv(&com_, data, size, true, false) ==
+             OM_COM_RECV_SUCESS;
+    }
+
+    bool PraseDataFromISR(uint8_t* data, uint32_t size) {
+      return om_com_prase_recv(&com_, data, size, true, true) ==
+             OM_COM_RECV_SUCESS;
+    }
   };
 
   class Event {
