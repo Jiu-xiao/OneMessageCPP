@@ -23,11 +23,13 @@ om_topic_t* om_core_topic_create_static(om_topic_t* topic, const char* name,
   memset(topic, 0, sizeof(*topic));
   strncpy(topic->name, name, OM_TOPIC_MAX_NAME_LEN);
 
+  topic->crc32 = om_crc32_calc((const uint8_t*)topic->name,
+                               strnlen(topic->name, OM_TOPIC_MAX_NAME_LEN));
+
   topic->self.key = topic->name;
   topic->virtual_mode = true;
   topic->buff_len = buff_len;
 
-  INIT_LIST_HEAD(&topic->puber);
   INIT_LIST_HEAD(&topic->suber);
   INIT_LIST_HEAD(&topic->link);
 

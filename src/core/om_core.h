@@ -2,7 +2,9 @@
 #define __OM_CORE_H__
 
 #include "om_color.h"
+#include "om_crc.h"
 #include "om_def.h"
+#include "om_fifo.h"
 #include "om_lib.h"
 #include "om_list.h"
 #include "om_rbt.h"
@@ -13,9 +15,9 @@ typedef struct {
   om_mutex_t mutex;
   om_msg_t msg;
   char name[OM_TOPIC_MAX_NAME_LEN];
+  uint32_t crc32;
   om_rbt_node_t self;
   om_list_head_t suber;
-  om_list_head_t puber;
   om_list_head_t link; /* 指向本话题的订阅者 */
   struct {
     om_user_fun_t filter;
@@ -93,8 +95,6 @@ om_status_t om_core_link_static(om_suber_t* suber, om_link_t* link,
 om_status_t om_core_delink(om_list_head_t* head);
 
 om_status_t om_core_del_suber(om_list_head_t* head);
-
-om_status_t om_core_del_puber(om_list_head_t* head);
 
 om_status_t om_core_del_topic(om_rbt_node_t* node);
 
