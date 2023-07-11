@@ -94,13 +94,8 @@ class Message {
                        offset, scope);
     }
 
-    bool Publish(Data& data) {
-      return om_publish(this->om_topic_, &data, sizeof(Data), true, false) ==
-             OM_OK;
-    };
-
-    bool PublishFromISR(Data& data) {
-      return om_publish(this->om_topic_, &data, sizeof(Data), true, true) ==
+    bool Publish(Data& data, bool in_isr = om_in_isr()) {
+      return om_publish(this->om_topic_, &data, sizeof(Data), true, in_isr) ==
              OM_OK;
     };
 
@@ -145,17 +140,9 @@ class Message {
       }
     }
 
-    bool DumpData() {
+    bool DumpData(bool in_isr = om_in_isr()) {
       if (this->Ready()) {
-        return om_suber_export(this->om_suber_, false) == OM_OK;
-      } else {
-        return false;
-      }
-    }
-
-    bool DumpDataFromISR() {
-      if (this->Ready()) {
-        return om_suber_export(this->om_suber_, true) == OM_OK;
+        return om_suber_export(this->om_suber_, in_isr) == OM_OK;
       } else {
         return false;
       }
@@ -178,13 +165,8 @@ class Message {
 
     void AddTopic(om_topic_t* topic) { om_com_add_topic(&com_, topic->name); }
 
-    bool PraseData(uint8_t* data, uint32_t size) {
-      return om_com_prase_recv(&com_, data, size, true, false) ==
-             OM_COM_RECV_SUCESS;
-    }
-
-    bool PraseDataFromISR(uint8_t* data, uint32_t size) {
-      return om_com_prase_recv(&com_, data, size, true, true) ==
+    bool PraseData(uint8_t* data, uint32_t size, bool in_isr = om_in_isr()) {
+      return om_com_prase_recv(&com_, data, size, true, in_isr) ==
              OM_COM_RECV_SUCESS;
     }
   };
@@ -212,12 +194,8 @@ class Message {
                                arg);
     }
 
-    bool Active(uint32_t event) {
-      return om_event_active(this->group_, event, true, false);
-    }
-
-    bool ActiveFromISR(uint32_t event) {
-      return om_event_active(this->group_, event, true, true);
+    bool Active(uint32_t event, bool in_isr = om_in_isr()) {
+      return om_event_active(this->group_, event, true, in_isr);
     }
 
     om_event_group_t* group_;
