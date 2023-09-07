@@ -160,10 +160,10 @@ class Message {
     }
 
     void AddTopic(const char* topic_name) {
-      om_com_add_topic(&com_, topic_name);
+      om_com_add_topic_with_name(&com_, topic_name);
     }
 
-    void AddTopic(om_topic_t* topic) { om_com_add_topic(&com_, topic->name); }
+    void AddTopic(om_topic_t* topic) { om_com_add_topic(&com_, topic); }
 
     bool PraseData(uint8_t* data, uint32_t size, bool in_isr = om_in_isr()) {
       return om_com_prase_recv(&com_, data, size, true, in_isr) ==
