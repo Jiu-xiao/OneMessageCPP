@@ -116,18 +116,18 @@ class Message {
     Subscriber(const char* name, Data& data, uint32_t timeout = UINT32_MAX) {
       om_topic_t* topic = om_find_topic(name, timeout);
       if (topic != NULL) {
-        this->om_suber_ = om_subscript(topic, OM_PRASE_VAR(data));
+        this->om_suber_ = om_subscribe(topic, OM_PRASE_VAR(data));
       } else {
         this->om_suber_ = NULL;
       }
     }
 
     Subscriber(om_topic_t* topic, Data& data) {
-      this->om_suber_ = om_subscript(topic, OM_PRASE_VAR(data));
+      this->om_suber_ = om_subscribe(topic, OM_PRASE_VAR(data));
     }
 
     Subscriber(Topic<Data>& topic, Data& data) {
-      this->om_suber_ = om_subscript(topic, OM_PRASE_VAR(data));
+      this->om_suber_ = om_subscribe(topic, OM_PRASE_VAR(data));
     }
 
     bool Ready() { return this->om_suber_ != NULL; }
