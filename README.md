@@ -44,7 +44,7 @@ target_include_directories(
 
 构造函数：
 
-Topic可以直接类型转化为om_topic_t*
+Topic可以直接隐式类型转换为om_topic_t*
 
 新创建一个Topic，cached为false代表不拷贝数据，只传递指针
 
@@ -72,6 +72,14 @@ bool Link(const char *source_name);
 
 ```c++
 om_topic_t *Find(const char *name);
+```
+
+加锁：
+
+```c++
+bool Lock();
+
+void Unlock();
 ```
 
 高级过滤器：

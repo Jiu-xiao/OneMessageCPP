@@ -37,6 +37,14 @@ class Message {
 
     Topic(om_topic_t* topic) { this->om_topic_ = topic; }
 
+    bool Lock(){
+      return OM_TOPIC_LOCK(&om_topic_);
+    }
+
+    void Unlock(){
+      OM_TOPIC_UNLOCK(&om_topic_);
+    }
+
     bool Link(Topic& source) {
       return om_core_link(source, this->om_topic_) == OM_OK;
     }
