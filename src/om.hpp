@@ -2,6 +2,7 @@
 #define __OM_H_CPP__
 
 #include "om.h"
+#include "om_core.h"
 
 class Message {
  public:
@@ -111,7 +112,7 @@ class Message {
 
     template <uint32_t Len>
     class Queue {
-      Queue(om_topic_t* topic) {
+      Queue(om_topic_t* topic) : topic_(topic) {
         OM_ASSERT(topic);
         om_queue_init_fifo_static(topic, &fifo_, buff_, Len);
         om_queue_add_static(topic, &sub_, &fifo_);
@@ -119,19 +120,37 @@ class Message {
 
       uint32_t Size() { return om_fifo_readable_item_count(&fifo_); }
 
-      bool Read(Data& buff) { return om_fifo_read(&fifo_, &buff) == OM_OK; }
-
-      bool Reads(Data* buff, uint32_t len) {
-        return om_fifo_reads(&fifo_, buff, len) == OM_OK;
+      bool Read(Data& buff) {
+        OM_TOPIC_LOCK(topic_);
+        auto ans = om_fifo_read(&fifo_, &buff);
+        OM_TOPIC_UNLOCK(topic_);
+        return ans == OM_OK;
       }
 
-      bool Pop() { return om_fifo_pop(&fifo_); }
+      bool Reads(Data* buff, uint32_t len) {
+        OM_TOPIC_LOCK(topic_);
+        auto ans = om_fifo_reads(&fifo_, buff, len);
+        OM_TOPIC_UNLOCK(topic_);
+        return ans == OM_OK;
+      }
 
-      void Reset() { om_fifo_reset(&fifo_); }
+      bool Pop() {
+        OM_TOPIC_LOCK(topic_);
+        auto ans = om_fifo_pop(&fifo_);
+        OM_TOPIC_UNLOCK(topic_);
+        return ans == OM_OK;
+      }
+
+      void Reset() {
+        OM_TOPIC_LOCK(topic_);
+        om_fifo_reset(&fifo_);
+        OM_TOPIC_UNLOCK(topic_);
+      }
 
       om_fifo_t fifo_;
       om_suber_t sub_;
       uint8_t buff_[sizeof(Data) * Len];
+      om_topic_t* topic_;
     };
 
     operator om_topic_t*() { return this->om_topic_; };
