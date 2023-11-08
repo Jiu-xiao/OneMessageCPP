@@ -37,13 +37,9 @@ class Message {
 
     Topic(om_topic_t* topic) { this->om_topic_ = topic; }
 
-    bool Lock(){
-      return OM_TOPIC_LOCK(&om_topic_);
-    }
+    bool Lock() { return OM_TOPIC_LOCK(om_topic_); }
 
-    void Unlock(){
-      OM_TOPIC_UNLOCK(&om_topic_);
-    }
+    void Unlock() { OM_TOPIC_UNLOCK(om_topic_); }
 
     bool Link(Topic& source) {
       return om_core_link(source, this->om_topic_) == OM_OK;
@@ -113,6 +109,31 @@ class Message {
       return om_com_generate_pack(om_topic_, &data) == OM_OK;
     };
 
+    template <uint32_t Len>
+    class Queue {
+      Queue(om_topic_t* topic) {
+        OM_ASSERT(topic);
+        om_queue_init_fifo_static(topic, &fifo_, buff_, Len);
+        om_queue_add_static(topic, &sub_, &fifo_);
+      }
+
+      uint32_t Size() { return om_fifo_readable_item_count(&fifo_); }
+
+      bool Read(Data& buff) { return om_fifo_read(&fifo_, &buff) == OM_OK; }
+
+      bool Reads(Data* buff, uint32_t len) {
+        return om_fifo_reads(&fifo_, buff, len) == OM_OK;
+      }
+
+      bool Pop() { return om_fifo_pop(&fifo_); }
+
+      void Reset() { om_fifo_reset(&fifo_); }
+
+      om_fifo_t fifo_;
+      om_suber_t sub_;
+      uint8_t buff_[sizeof(Data) * Len];
+    };
+
     operator om_topic_t*() { return this->om_topic_; };
 
     om_topic_t* om_topic_;
@@ -121,22 +142,18 @@ class Message {
   template <typename Data>
   class Subscriber {
    public:
-    Subscriber(const char* name, Data& data, uint32_t timeout = UINT32_MAX) {
+    Subscriber(const char* name, uint32_t timeout = UINT32_MAX) {
       om_topic_t* topic = om_find_topic(name, timeout);
       if (topic != NULL) {
-        this->om_suber_ = om_subscribe(topic, OM_PRASE_VAR(data));
+        this->om_suber_ = om_subscribe(topic);
       } else {
         this->om_suber_ = NULL;
       }
     }
 
-    Subscriber(om_topic_t* topic, Data& data) {
-      this->om_suber_ = om_subscribe(topic, OM_PRASE_VAR(data));
-    }
+    Subscriber(om_topic_t* topic) { this->om_suber_ = om_subscribe(topic); }
 
-    Subscriber(Topic<Data>& topic, Data& data) {
-      this->om_suber_ = om_subscribe(topic, OM_PRASE_VAR(data));
-    }
+    Subscriber(Topic<Data>& topic) { this->om_suber_ = om_subscribe(topic); }
 
     bool Ready() { return this->om_suber_ != NULL; }
 
@@ -148,9 +165,9 @@ class Message {
       }
     }
 
-    bool DumpData(bool in_isr = om_in_isr()) {
+    bool DumpData(Data& buff, bool in_isr = om_in_isr()) {
       if (this->Ready()) {
-        return om_suber_export(this->om_suber_, in_isr) == OM_OK;
+        return om_suber_export(this->om_suber_, &buff, in_isr) == OM_OK;
       } else {
         return false;
       }

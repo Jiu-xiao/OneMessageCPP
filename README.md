@@ -58,6 +58,25 @@ Topic(const char *name, bool cached = false);
 Topic(om_topic_t *topic);
 ```
 
+队列：
+
+```c++
+template <uint32_t Len>
+class Queue{
+    Queue(topic_t* topic);
+
+     uint32_t Size();
+
+      bool Read(Data& buff);
+
+      bool Reads(Data* buff, uint32_t len);
+
+      bool Pop();
+
+      void Reset();
+}
+```
+
 链接：
 
 ```c++
@@ -121,18 +140,18 @@ bool Publish(Data &data, bool in_isr = om_in_isr());
 
 构造：
 
-构造时需要传入订阅的话题名，并将数据变量绑定。如果目标话题未创建，会等待timeout时间后返回。
+构造时需要传入订阅的话题名,如果目标话题未创建，会等待timeout时间后返回。
 
 ```c++
-Subscriber(const char *name, Data &data, uint32_t timeout = UINT32_MAX);
+Subscriber(const char *name uint32_t timeout = UINT32_MAX);
 ```
 
 如果能够获取到对应话题，可以使用以下构造函数：
 
 ```c++
-    Subscriber(om_topic_t *topic, Data &data);
+    Subscriber(om_topic_t *topic);
 
-    Subscriber(Topic<Data> &topic, Data &data);
+    Subscriber(Topic<Data> &topic);
 ```
 
 是否创建成功：
@@ -150,7 +169,7 @@ Subscriber(const char *name, Data &data, uint32_t timeout = UINT32_MAX);
 导出数据到绑定的变量：
 
 ```c++
-    bool DumpData(bool in_isr = om_in_isr());
+    bool DumpData(Data& buff, bool in_isr = om_in_isr());
 ```
 
 > `class Remote`
